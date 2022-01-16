@@ -24,6 +24,8 @@ linters:
     - ineffassign
     - gocritic
     - lll
+    - revive
+
 linters-settings:
   nolintlint:
     allow-unused: false

@@ -16,6 +16,8 @@ import (
 	"github.com/mayamika/mai-ir/internal/search"
 )
 
+const shutdownTimeout = 10 * time.Second
+
 func main() {
 	logger, err := newLogger()
 	if err != nil {
@@ -53,7 +55,7 @@ func main() {
 	<-signals
 	logger.Info("stopping")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	if err := s.Shutdown(ctx); err != nil {

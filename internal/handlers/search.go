@@ -40,18 +40,18 @@ func (h *Search) Routes() chi.Router {
 func (h *Search) get(w http.ResponseWriter, r *http.Request) {
 	var sr domain.SearchRequest
 	if err := sr.Bind(r); err != nil {
-		render.Render(w, r, badRequestError(err.Error()))
+		_ = render.Render(w, r, badRequestError(err.Error()))
 		return
 	}
 
 	res, err := h.service.Search(r.Context(), &sr)
 	if err != nil {
-		render.Render(w, r, internalError(err.Error()))
+		_ = render.Render(w, r, internalError(err.Error()))
 		return
 	}
 
 	if err := render.Render(w, r, res); err != nil {
-		render.Render(w, r, errEncodeFailed)
+		_ = render.Render(w, r, errEncodeFailed)
 		return
 	}
 }

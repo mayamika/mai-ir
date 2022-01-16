@@ -1,0 +1,31 @@
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    - nolintlint
+    - goimports
+    - gomnd
+    - gosec
+    - nakedret
+    - unconvert
+    - whitespace
+    - gosimple
+    - govet
+    - ineffassign
+    - gocritic
+    - lll
+linters-settings:
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: false
+    require-specific: true

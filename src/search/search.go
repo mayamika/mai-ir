@@ -18,6 +18,7 @@ type QueryResult struct {
 	Description   string
 }
 
+//nolint: gocritic
 func Search(indexPath, query string) (*QueryResult, error) {
 	cIndexPath, cQuery := C.CString(indexPath), C.CString(query)
 	defer func() {

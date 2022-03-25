@@ -18,7 +18,7 @@ func (e *errorResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func badRequestError(reason string) *errorResponse {
+func badRequest(reason string) *errorResponse {
 	return &errorResponse{http.StatusBadRequest, reason}
 }
 

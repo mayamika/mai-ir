@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	errEncodeFailed = badRequestError("can't encode response")
+	errEncodeFailed = badRequest("can't encode response")
 )
 
 type SearchService interface {
@@ -40,7 +40,7 @@ func (h *Search) Routes() chi.Router {
 func (h *Search) get(w http.ResponseWriter, r *http.Request) {
 	var sr domain.SearchRequest
 	if err := sr.Bind(r); err != nil {
-		_ = render.Render(w, r, badRequestError(err.Error()))
+		_ = render.Render(w, r, badRequest(err.Error()))
 		return
 	}
 

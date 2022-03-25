@@ -1,2 +1,6 @@
 # Editors.
 .vscode
+
+# Cache dirs.
+testdata
+build

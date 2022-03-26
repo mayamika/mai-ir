@@ -1,6 +1,8 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
+#include "stdint.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -10,6 +12,11 @@ typedef struct {
     char* original_title;
     char* image;
     char* description;
+} Item;
+
+typedef struct {
+    int32_t count;
+    Item** items;
 } QueryResult;
 
 void free_query_result(QueryResult* qr);

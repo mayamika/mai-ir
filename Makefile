@@ -21,15 +21,15 @@ endef
 
 CGO_DIR := src/search/
 
-
+DB_HEADERS				:= src/db/db.h
 BYTE_HEADERS 			:= src/byte/byte.h
-INDEX_BOOLEAN_HEADERS 	:= src/index/boolean/boolean.h
+INDEX_HEADERS 			:= src/index/index.h
 QUERY_HEADERS 			:= src/query/query.h
 QUERY_SOURCES			:= src/query/query.cpp
 
 QUERY_LIB_TARGET := $(CGO_DIR)/libquery.so
 QUERY_LIB_SOURCES := $(QUERY_SOURCES)
-QUERY_LIB_HEADERS := $(QUERY_HEADERS) $(BYTE_HEADERS) $(INDEX_BOOLEAN_HEADERS)
+QUERY_LIB_HEADERS := $(QUERY_HEADERS) $(DB_HEADERS) $(BYTE_HEADERS) $(INDEX_HEADERS)
 
 $(QUERY_LIB_TARGET): $(QUERY_LIB_SOURCES) $(QUERY_LIB_HEADERS)
 	$(build-cxx-lib) $(QUERY_LIB_SOURCES)
@@ -39,7 +39,7 @@ build-cgo: $(QUERY_LIB_TARGET)
 
 CREATE_INDEX_TARGET := $(OUTPUT_DIR)/build-index
 CREATE_INDEX_SOURCES := src/create-index/main.cpp
-CREATE_INDEX_HEADERS := src/byte/
+CREATE_INDEX_HEADERS := $(DB_HEADERS) $(BYTE_HEADERS)
 
 $(CREATE_INDEX_TARGET): $(CREATE_INDEX_SOURCES) $(CREATE_INDEX_HEADERS) | $(OUTPUT_DIR)
 	$(build-cxx) $(CREATE_INDEX_SOURCES)

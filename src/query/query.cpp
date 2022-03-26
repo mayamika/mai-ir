@@ -1,5 +1,7 @@
 #include "query/query.h"
 
+#include <algorithm>
+#include <cmath>
 #include <stack>
 #include <string>
 
@@ -25,22 +27,66 @@ int priority(Operation op) {
 }
 
 PostingList union_postings(const PostingList& lhs, const PostingList& rhs) {
-    auto v = lhs;
-    v.resize(rhs.size());
-    return v;
+    size_t size = lhs.size() + rhs.size();
+    PostingList ret;
+    ret.reserve(size);
+
+    for (size_t i = 0, j = 0; i < lhs.size() && j < rhs.size();) {
+        if (lhs[i] == rhs[j]) {
+            ret.push_back(lhs[i]);
+            i++, j++;
+        } else if (lhs[i] < rhs[j]) {
+            ret.push_back(lhs[i]);
+            i++;
+        } else {
+            ret.push_back(rhs[j]);
+            j++;
+        }
+    }
+
+    return ret;
 }
 
 PostingList intersect_postings(const PostingList& lhs, const PostingList& rhs) {
-    auto v = lhs;
-    v.resize(rhs.size());
-    return v;
+    size_t size = std::min(lhs.size(), rhs.size());
+    PostingList ret;
+    ret.reserve(size);
+
+    for (size_t i = 0, j = 0; i < lhs.size() && j < rhs.size();) {
+        if (lhs[i] == rhs[j]) {
+            ret.push_back(lhs[i]);
+            i++, j++;
+        } else if (lhs[i] < rhs[j]) {
+            i++;
+        } else {
+            j++;
+        }
+    }
+
+    return ret;
 }
 
-PostingList negate_postings(const PostingList& v) {
-    return v;
+PostingList negate_postings(PostingList all_docs, const PostingList& v) {
+    size_t size = all_docs.size() - v.size();
+    PostingList ret;
+    ret.reserve(size);
+
+    for (size_t i = 0, j = 0; i < all_docs.size() && j < v.size();) {
+        if (all_docs[i] == v[j]) {
+            i++, j++;
+        } else if (all_docs[i] < v[j]) {
+            ret.push_back(all_docs[i]);
+            i++;
+        } else {
+            j++;
+        }
+    }
+
+    return ret;
 }
 
-void process_op(std::stack<PostingList>& args, Operation op) {
+void process_op(const PostingList& all_docs, std::stack<PostingList>& args,
+                Operation op) {
     PostingList r = pop_top(args), l;
 
     switch (op) {
@@ -55,7 +101,7 @@ void process_op(std::stack<PostingList>& args, Operation op) {
             args.push(intersect_postings(l, r));
             break;
         case NEGATION:
-            args.push(negate_postings(r));
+            args.push(negate_postings(all_docs, r));
             break;
         case BRACE:
             throw BadSyntax("unexpected brace");
@@ -85,7 +131,7 @@ int try_op(const std::string& q, size_t i, Operation& op) {
     return 0;
 }
 
-PostingList execute(const Index& index, const std::string& query) {
+PostingList execute(const nindex::Index& index, const std::string& query) {
     std::stack<PostingList> args;
     std::stack<Operation> ops;
 
@@ -107,7 +153,7 @@ PostingList execute(const Index& index, const std::string& query) {
 
         if (ch == ')') {
             while (top(ops) != BRACE) {
-                process_op(args, pop_top(ops));
+                process_op(index.all_docs(), args, pop_top(ops));
             }
 
             ops.pop();
@@ -122,7 +168,7 @@ PostingList execute(const Index& index, const std::string& query) {
             i += ok - 1;
 
             while (!ops.empty() && priority(ops.top()) >= priority(op)) {
-                process_op(args, pop_top(ops));
+                process_op(index.all_docs(), args, pop_top(ops));
             }
 
             if (op == NEGATION && mb_intersect) {
@@ -153,7 +199,7 @@ PostingList execute(const Index& index, const std::string& query) {
     }
 
     while (!ops.empty()) {
-        process_op(args, pop_top(ops));
+        process_op(index.all_docs(), args, pop_top(ops));
     }
     return top(args);
 }

@@ -29,6 +29,11 @@ func (s *Service) Search(ctx context.Context, r *domain.SearchRequest) (*domain.
 		return nil, err
 	}
 	// TODO: Remove debug print.
+	n := qr.Count
+	if qr.Count > 20 {
+		n = 20
+	}
+	qr.Items = qr.Items[:n]
 	spew.Dump(qr)
 
 	return &domain.SearchResponse{}, nil

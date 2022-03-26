@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "index/index.h"
+
 namespace query {
 
 class BadSyntax : public std::exception {
@@ -22,12 +24,7 @@ public:
 
 using PostingList = std::vector<int32_t>;
 
-class Index {
-public:
-    virtual PostingList posting_list(const std::string& term) const = 0;
-};
-
-PostingList execute(const Index& index, const std::string& query);
+PostingList execute(const nindex::Index& index, const std::string& query);
 
 template <typename T>
 T top(const std::stack<T>& args) {

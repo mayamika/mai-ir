@@ -12,11 +12,16 @@ import (
 	"unsafe"
 )
 
-type QueryResult struct {
+type Item struct {
 	Title         string
 	OriginalTitle string
 	Image         string
 	Description   string
+}
+
+type QueryResult struct {
+	Count int
+	Items []*Item
 }
 
 //nolint: gocritic
@@ -40,11 +45,25 @@ func Search(indexPath, query string) (*QueryResult, error) {
 	return qr, nil
 }
 
-func queryResultFromC(qr *C.QueryResult) *QueryResult {
-	return &QueryResult{
-		Title:         C.GoString(qr.title),
-		OriginalTitle: C.GoString(qr.original_title),
-		Image:         C.GoString(qr.image),
-		Description:   C.GoString(qr.description),
+func itemFromC(i *C.Item) *Item {
+	return &Item{
+		Title:         C.GoString(i.title),
+		OriginalTitle: C.GoString(i.original_title),
+		Image:         C.GoString(i.image),
+		Description:   C.GoString(i.description),
 	}
+}
+
+func queryResultFromC(cqr *C.QueryResult) *QueryResult {
+	qr := &QueryResult{
+		Count: int(cqr.count),
+	}
+	qr.Items = make([]*Item, qr.Count)
+
+	cItems := unsafe.Slice(cqr.items, qr.Count)
+	for i := range qr.Items {
+		qr.Items[i] = itemFromC(cItems[i])
+	}
+
+	return qr
 }

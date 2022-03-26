@@ -54,6 +54,16 @@ int32_t write_int(std::ostream& os, Int v) {
     return sizeof(Int);
 }
 
+template <typename Int>
+Int read_int(std::istream& is) {
+    static_assert(std::is_integral<Int>::value);
+
+    Int v;
+    is.read(reinterpret_cast<char*>(&v), sizeof(Int));
+
+    return v;
+}
+
 }  // namespace byte
 
 #endif

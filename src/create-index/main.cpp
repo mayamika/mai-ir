@@ -10,6 +10,7 @@
 #include <string>
 
 #include "byte/byte.h"
+#include "db.h"
 
 #define FATAL(text)                       \
     do {                                  \
@@ -58,37 +59,6 @@ void parse_options(int argc, char* argv[]) {
     }
 }
 
-struct Entry {
-    std::string title;
-    std::string original_title;
-    std::string description;
-};
-
-Entry parse_entry(const std::string& line) {
-    Entry e;
-
-    std::stringstream ss(line);
-    char delim = '\t';
-
-    std::string unused;
-    getline(ss, unused, delim);            // id
-    getline(ss, unused, delim);            // olang
-    getline(ss, unused, delim);            // image
-    getline(ss, unused, delim);            // l_wikidata
-    getline(ss, unused, delim);            // c_votecount
-    getline(ss, unused, delim);            // c_popularity
-    getline(ss, unused, delim);            // c_rating
-    getline(ss, unused, delim);            // length
-    getline(ss, e.title, delim);           // title
-    getline(ss, e.original_title, delim);  // original
-    getline(ss, unused, delim);            // alias
-    getline(ss, unused, delim);            // l_renai
-    getline(ss, e.description, delim);     // desc
-    getline(ss, unused, delim);            // c_average
-
-    return e;
-}
-
 std::regex _word_regex("[\\w\\'-]+");
 
 std::set<std::string> tokenize(const std::string s) {
@@ -101,6 +71,7 @@ std::set<std::string> tokenize(const std::string s) {
 void create_index(const std::filesystem::path& output_dir,
                   std::istream& src_index) {
     std::filesystem::create_directories(output_dir);
+    std::ofstream db_file(output_dir / "db"), count_file(output_dir / "count");
 
     std::string line;
     int32_t doc_id = 1;
@@ -108,15 +79,17 @@ void create_index(const std::filesystem::path& output_dir,
     std::map<std::string, std::vector<uint32_t>> inv_index;
 
     while (std::getline(src_index, line)) {
-        Entry e = parse_entry(line);
+        auto e = db::parse_entry(line);
         auto tokens = tokenize(e.description);
 
         for (auto& v : tokens) {
             inv_index[v].push_back(doc_id);
         }
+        db_file << line << '\n';
 
         ++doc_id;
     }
+    byte::write_int(count_file, doc_id - 1);
 
     std::ofstream tokens_offsets_file(output_dir / "tokens-offsets"),
         tokens_file(output_dir / "tokens");

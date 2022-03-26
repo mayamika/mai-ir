@@ -1,13 +1,15 @@
 #include <getopt.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <regex>
 #include <set>
 #include <string>
 
-#include "byte.h"
+#include "byte/byte.h"
 
 #define FATAL(text)                       \
     do {                                  \
@@ -121,12 +123,19 @@ void create_index(const std::filesystem::path& output_dir,
     std::ofstream inv_index_offsets_file(output_dir / "inv-index-offsets"),
         inv_index_file(output_dir / "inv-index");
 
+    std::vector<int32_t> tokens_offsets, index_offsets;
+
     for (auto& [token, doc_ids] : inv_index) {
-        byte::write_int(tokens_offsets_file,
-                        byte::write_string(tokens_file, token));
-        byte::write_int(inv_index_offsets_file,
-                        byte::write_vector(inv_index_file, doc_ids));
+        tokens_offsets.push_back(byte::write_string(tokens_file, token));
+        index_offsets.push_back(byte::write_vector(inv_index_file, doc_ids));
     }
+    std::exclusive_scan(tokens_offsets.begin(), tokens_offsets.end(),
+                        tokens_offsets.begin(), 0);
+    std::exclusive_scan(index_offsets.begin(), index_offsets.end(),
+                        index_offsets.begin(), 0);
+
+    byte::write_vector(tokens_offsets_file, tokens_offsets);
+    byte::write_vector(inv_index_offsets_file, index_offsets);
 }
 
 int main(int argc, char* argv[]) {

@@ -25,7 +25,7 @@ func main() {
 	}
 
 	sc := search.Config{
-		IndexPath: "todo",
+		IndexPath: "testdata/index",
 	}
 
 	ss := search.NewService(sc)

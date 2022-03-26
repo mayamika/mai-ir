@@ -1,6 +1,7 @@
 #include "search.h"
 
-#include <cstring>
+#include "index/boolean/boolean.h"
+#include "query/query.h"
 
 void free_query_result(QueryResult* qr) {
     delete[] qr->title;
@@ -10,11 +11,12 @@ void free_query_result(QueryResult* qr) {
 }
 
 int search(QueryResult* qr, const char* index_path, const char* query) {
+    index::boolean::Index index(index_path);
+    query::execute(index, query);
+
     qr->title = new char[256];
-    strcpy(qr->title, index_path);
 
     qr->original_title = new char[256];
-    strcpy(qr->original_title, query);
 
     qr->image = nullptr;
     qr->description = nullptr;

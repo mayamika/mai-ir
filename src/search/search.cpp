@@ -1,6 +1,6 @@
 #include "search.h"
 
-#include "db/db.h"
+#include "file/file.h"
 #include "index/index.h"
 #include "query/query.h"
 
@@ -17,7 +17,7 @@ void free_query_result(QueryResult* qr) {
     }
 }
 
-void copy_to_cstring(char** dst, std::string& src) {
+void copy_to_cstring(char** dst, const std::string& src) {
     size_t n = src.size();
     *dst = new char[n + 1];
     (*dst)[n] = '\0';
@@ -27,16 +27,7 @@ void copy_to_cstring(char** dst, std::string& src) {
     }
 }
 
-void read_doc(const std::filesystem::path dir, int32_t doc_id, Item* item) {
-    std::ifstream db(dir / "db");
-
-    std::string line;
-    for (int32_t i = 1; i < doc_id; ++i) getline(db, line);
-
-    getline(db, line);
-
-    auto e = db::parse_entry(line);
-
+void copy_to_c(Item* item, const file::DbEntry& e) {
     copy_to_cstring(&item->title, e.title);
     copy_to_cstring(&item->original_title, e.original_title);
     copy_to_cstring(&item->image, e.image);
@@ -54,16 +45,19 @@ int search(QueryResult* qr, const char* index_path, const char* query) {
         std::cerr << e.what() << std::endl;
     }
 
+    std::vector<int32_t> db_offsets = file::DbOffsetsFile(index_path).offsets();
+    file::DbFile db(index_path);
+
     size_t n = posting_list.size();
     qr->count = n;
     qr->items = new Item*[n];
 
     for (size_t i = 0; i < n; ++i) {
-        Item* item = new Item;
         int32_t doc_id = posting_list[i];
+        file::DbEntry entry = db.entry(db_offsets[doc_id]);
 
-        read_doc(index_path, doc_id, item);
-
+        Item* item = new Item;
+        copy_to_c(item, entry);
         qr->items[i] = item;
     }
 

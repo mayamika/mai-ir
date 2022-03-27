@@ -7,6 +7,22 @@
 
 namespace query {
 
+template <typename T>
+T top(const std::stack<T>& args) {
+    if (args.empty()) {
+        throw BadSyntax();
+    }
+
+    return args.top();
+}
+
+template <typename T>
+T pop_top(std::stack<T>& args) {
+    auto r = top(args);
+    args.pop();
+    return r;
+}
+
 bool is_delim(char c) {
     return c == ' ';
 }

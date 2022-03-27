@@ -8,75 +8,64 @@
 #include <vector>
 
 #include "byte/byte.h"
+#include "file/file.h"
 
 namespace nindex {
 
 class Index {
     std::filesystem::path dir_;
+    std::vector<int32_t> term_offsets_, inv_index_offsets_;
 
     std::string read_term(int32_t offset, const std::string& term) const {
         if (offset == -1) {
             return term;
         }
 
-        std::ifstream terms(dir_ / "tokens");
-        terms.seekg(offset);
-
-        return byte::read_string(terms);
+        file::TermsFile terms_file(dir_);
+        return terms_file.term(offset);
     }
 
     int32_t find_term(const std::string& term) const {
-        std::ifstream offsets_file(dir_ / "tokens-offsets");
+        auto cmp = [&](int32_t l_offset, int32_t r_offset) {
+            auto l = read_term(l_offset, term), r = read_term(r_offset, term);
+            return l < r;
+        };
+        auto it = std::lower_bound(term_offsets_.begin(), term_offsets_.end(),
+                                   -1, cmp);
 
-        std::vector<int32_t> offsets = byte::read_vector<int32_t>(offsets_file);
-        auto it = std::lower_bound(
-            offsets.begin(), offsets.end(), -1, [&](int32_t lid, int32_t rid) {
-                auto l = read_term(lid, term), r = read_term(rid, term);
-                return l < r;
-            });
-
-        if (it == offsets.end() || term != read_term(*it, "")) {
+        if (it == term_offsets_.end() || term != read_term(*it, "")) {
             throw std::logic_error("not found");
         }
 
-        return it - offsets.begin();
+        return it - term_offsets_.begin();
     }
 
 public:
-    Index(const std::filesystem::path& dir) : dir_(dir){};
+    Index(const std::filesystem::path& dir) : dir_(dir) {
+        term_offsets_ = file::TermOffsetsFile(dir).offsets();
+        inv_index_offsets_ = file::InvIndexOffsetsFile(dir).offsets();
+    };
+
     std::vector<int32_t> posting_list(const std::string& term) const {
         int32_t term_id = find_term(term);
+        int32_t offset = inv_index_offsets_[term_id];
 
-        std::ifstream index_offsets_file(dir_ / "inv-index-offsets"),
-            index_file(dir_ / "inv-index");
-
-        std::vector<int32_t> offsets =
-            byte::read_vector<int32_t>(index_offsets_file);
-
-        int32_t offset = offsets[term_id];
-        index_file.seekg(offset);
-
-        std::vector<int32_t> posting_list =
-            byte::read_vector<int32_t>(index_file);
-
-        return posting_list;
-    }
-
-    int32_t doc_count() const {
-        std::ifstream count_file(dir_ / "count");
-        return byte::read_int<int32_t>(count_file);
+        file::InvIndexFile index_file(dir_);
+        return index_file.posting_list(offset);
     }
 
     std::vector<int32_t> all_docs() const {
-        int32_t n = doc_count();
-        std::vector<int32_t> ret;
-        ret.reserve(n);
+        file::CountFile count_file(dir_);
+        int32_t n = count_file.doc_count();
 
-        for (int i = 1; i <= n; i++) {
-            ret.push_back(i);
+        std::vector<int32_t> doc_ids;
+        doc_ids.reserve(n);
+
+        for (int i = 0; i < n; i++) {
+            doc_ids.push_back(i);
         }
 
-        return ret;
+        return doc_ids;
     }
 };
 

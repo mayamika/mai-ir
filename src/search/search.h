@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 typedef struct {
+    char* id;
     char* title;
     char* original_title;
     char* image;

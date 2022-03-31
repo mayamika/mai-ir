@@ -1,7 +1,7 @@
 package search
 
 // #cgo CXXFLAGS: -std=c++17 -Wall -Wextra -Werror -I..
-// #cgo LDFLAGS: -L${SRCDIR} -lquery
+// #cgo LDFLAGS: -L../../build -lquery
 //
 // #include "search.h"
 // #include <stdlib.h>

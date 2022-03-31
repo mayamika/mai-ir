@@ -1,0 +1,8 @@
+*
+!/cmd
+!/internal
+!/src
+!/ui
+!/Makefile
+!/go.mod
+!/go.sum

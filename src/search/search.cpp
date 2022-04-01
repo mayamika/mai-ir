@@ -7,7 +7,6 @@
 void free_item(Item* i) {
     delete[] i->id;
     delete[] i->title;
-    delete[] i->original_title;
     delete[] i->image;
     delete[] i->description;
 }
@@ -31,7 +30,6 @@ void copy_to_cstring(char** dst, const std::string& src) {
 void copy_to_c(Item* item, const file::DbEntry& e) {
     copy_to_cstring(&item->id, e.id);
     copy_to_cstring(&item->title, e.title);
-    copy_to_cstring(&item->original_title, e.original_title);
     copy_to_cstring(&item->image, e.image);
     copy_to_cstring(&item->description, e.description);
 }

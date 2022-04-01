@@ -13,11 +13,10 @@ import (
 )
 
 type Item struct {
-	ID            string
-	Title         string
-	OriginalTitle string
-	Image         string
-	Description   string
+	ID          string
+	Title       string
+	Image       string
+	Description string
 }
 
 type QueryResult struct {
@@ -48,11 +47,10 @@ func Search(indexPath, query string) (*QueryResult, error) {
 
 func itemFromC(i *C.Item) *Item {
 	return &Item{
-		ID:            C.GoString(i.id),
-		Title:         C.GoString(i.title),
-		OriginalTitle: C.GoString(i.original_title),
-		Image:         C.GoString(i.image),
-		Description:   C.GoString(i.description),
+		ID:          C.GoString(i.id),
+		Title:       C.GoString(i.title),
+		Image:       C.GoString(i.image),
+		Description: C.GoString(i.description),
 	}
 }
 

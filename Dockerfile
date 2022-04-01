@@ -48,9 +48,9 @@ FROM docker.io/debian:${DEBIAN_VERSION}
 WORKDIR /app
 
 COPY --from=cpp-builder /src/build/libquery.so /lib
-COPY --from=cpp-builder /src/testdata/index .
-COPY --from=go-builder /src/build/server .
+COPY --from=cpp-builder /src/testdata/index ./index
 COPY --from=ui-builder /src/build ./dist
+COPY --from=go-builder /src/build/server .
 
 ENV HTTP_ADDR :80
 ENV INDEX_PATH /app/index
@@ -58,4 +58,4 @@ ENV DIST_PATH /app/dist
 
 EXPOSE 80
 ENTRYPOINT [ "./server" ]
-CMD ["-c", "./dev.toml"]
+CMD []

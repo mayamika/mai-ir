@@ -87,7 +87,6 @@ public:
 struct DbEntry {
     std::string id;
     std::string title;
-    std::string original_title;
     std::string image;
     std::string description;
 };
@@ -102,20 +101,18 @@ class DbFile {
         char delim = '\t';
 
         std::string unused;
-        std::getline(ss, e.id, delim);              // id
-        std::getline(ss, unused, delim);            // olang
-        std::getline(ss, e.image, delim);           // image
-        std::getline(ss, unused, delim);            // l_wikidata
-        std::getline(ss, unused, delim);            // c_votecount
-        std::getline(ss, unused, delim);            // c_popularity
-        std::getline(ss, unused, delim);            // c_rating
-        std::getline(ss, unused, delim);            // length
-        std::getline(ss, e.title, delim);           // title
-        std::getline(ss, e.original_title, delim);  // original
-        std::getline(ss, unused, delim);            // alias
-        std::getline(ss, unused, delim);            // l_renai
-        std::getline(ss, e.description, delim);     // desc
-        std::getline(ss, unused, delim);            // c_average
+        std::getline(ss, e.id, delim);           // id
+        std::getline(ss, unused, delim);         // olang
+        std::getline(ss, e.image, delim);        // image
+        std::getline(ss, unused, delim);         // l_wikidata
+        std::getline(ss, unused, delim);         // c_votecount
+        std::getline(ss, unused, delim);         // c_popularity
+        std::getline(ss, unused, delim);         // c_rating
+        std::getline(ss, unused, delim);         // length
+        std::getline(ss, e.title, delim);        // alias
+        std::getline(ss, unused, delim);         // l_renai
+        std::getline(ss, e.description, delim);  // desc
+        std::getline(ss, unused, delim);         // c_average
 
         return e;
     }

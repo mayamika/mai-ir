@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stack>
 #include <string>
 
@@ -87,15 +88,12 @@ PostingList negate_postings(PostingList all_docs, const PostingList& v) {
     PostingList ret;
     ret.reserve(size);
 
-    for (size_t i = 0, j = 0; i < all_docs.size() && j < v.size();) {
-        if (all_docs[i] == v[j]) {
-            i++, j++;
-        } else if (all_docs[i] < v[j]) {
-            ret.push_back(all_docs[i]);
-            i++;
-        } else {
-            j++;
-        }
+    size_t j = 0;
+    for (size_t i = 0; i < all_docs.size(); ++i) {
+        while (j != v.size() && v[j] < all_docs[i]) ++j;
+        if (j != v.size() && v[j] == all_docs[i]) continue;
+
+        ret.push_back(all_docs[i]);
     }
 
     return ret;
@@ -125,6 +123,56 @@ void process_op(const PostingList& all_docs, std::stack<PostingList>& args,
     }
 }
 
+std::vector<int32_t> coords_posting_list(const nindex::Index& index,
+                                         const std::vector<std::string>& terms,
+                                         int32_t k) {
+    std::vector<int32_t> docs = index.all_docs();
+    for (auto& term : terms) {
+        docs = intersect_postings(docs, index.posting_list(term));
+    }
+
+    std::vector<int32_t> posting_list;
+    for (auto doc_id : docs) {
+        std::vector<std::vector<int32_t>> coordinates(terms.size());
+        for (size_t j = 0; j < terms.size(); ++j) {
+            coordinates[j] = index.coordinates(doc_id, terms[j]);
+        }
+
+        bool found = false;
+
+        for (size_t i = 0; i < coordinates[0].size(); ++i) {
+            std::vector<int32_t> positions(coordinates.size(),
+                                           std::numeric_limits<int32_t>::max());
+            positions[0] = coordinates[0][i];
+
+            for (size_t j = 1; j < positions.size(); ++j) {
+                auto it =
+                    std::upper_bound(coordinates[j].begin(),
+                                     coordinates[j].end(), positions[j - 1]);
+                if (it == coordinates[j].end()) {
+                    break;
+                }
+
+                positions[j] = *it;
+                if (positions[j] - positions.front() > k) {
+                    break;
+                }
+            }
+
+            if (positions.back() - positions.front() <= k) {
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            posting_list.push_back(doc_id);
+        }
+    }
+
+    return posting_list;
+}
+
 int try_op(const std::string& q, size_t i, Operation& op) {
     if (q[i] == '!') {
         op = NEGATION;
@@ -145,6 +193,57 @@ int try_op(const std::string& q, size_t i, Operation& op) {
     }
 
     return 0;
+}
+
+PostingList scan_quote(const nindex::Index& index, const std::string& s,
+                       size_t& i) {
+    std::vector<std::string> terms;
+    size_t n = s.length();
+
+    ++i;
+    for (; i < n; ++i) {
+        std::string term;
+
+        while (i < n && isalnum(s[i])) {
+            term += s[i++];
+        }
+        if (!term.empty()) {
+            terms.push_back(term);
+        }
+
+        if (s[i] == '"') {
+            break;
+        }
+    }
+
+    if (i == n) {
+        throw BadSyntax("unfinished quote");
+    }
+    if (terms.empty()) {
+        throw BadSyntax("empty quote");
+    }
+
+    int32_t k = 0;
+
+    ++i;
+    while (i < n && isspace(s[i])) ++i;
+    if (i < n && s[i] == '/') {
+        ++i;
+        while (i < n && isspace(s[i])) ++i;
+
+        for (; i < n && isdigit(s[i]); i++) {
+            k *= 10;
+            k += s[i] - '0';
+        }
+
+        if (k < static_cast<int32_t>(terms.size() - 1)) {
+            throw BadSyntax("quote distance is invalid");
+        }
+    }
+
+    --i;
+    k = std::max<int32_t>(k, terms.size() - 1);
+    return coords_posting_list(index, terms, k);
 }
 
 PostingList execute(const nindex::Index& index, const std::string& query) {
@@ -198,6 +297,11 @@ PostingList execute(const nindex::Index& index, const std::string& query) {
 
         if (mb_intersect) {
             ops.push(INTERSECTION);
+        }
+
+        if (query[i] == '"') {
+            args.push(scan_quote(index, query, i));
+            continue;
         }
 
         std::string token;

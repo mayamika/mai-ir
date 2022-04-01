@@ -60,11 +60,17 @@ void parse_options(int argc, char* argv[]) {
 
 std::regex _word_regex("[\\w\\'-]+");
 
-std::set<std::string> tokenize(const std::string s) {
+std::map<std::string, std::vector<int32_t>> tokenize(const std::string s) {
+    std::map<std::string, std::vector<int32_t>> tokens;
     auto begin = std::sregex_token_iterator(s.begin(), s.end(), _word_regex);
     auto end = std::sregex_token_iterator();
 
-    return std::set<std::string>(begin, end);
+    int32_t pos = 0;
+    for (auto it = begin; it != end; ++it, ++pos) {
+        tokens[*it].push_back(pos);
+    }
+
+    return tokens;
 }
 
 struct Entry {
@@ -96,36 +102,9 @@ Entry parse_entry(const std::string& line) {
     return e;
 }
 
-void create_index(const std::filesystem::path& output_dir,
-                  std::istream& src_index) {
-    std::filesystem::create_directories(output_dir);
-    std::ofstream db_file(output_dir / "db"),
-        db_offsets_file(output_dir / "db-offsets"),
-        count_file(output_dir / "count");
-
-    std::string line;
-    int32_t doc_id = 0;
-
-    std::map<std::string, std::vector<uint32_t>> inv_index;
-
-    std::vector<int32_t> db_offsets(1, 0);
-    while (std::getline(src_index, line)) {
-        auto e = parse_entry(line);
-        auto tokens = tokenize(e.description);
-
-        for (auto& v : tokens) {
-            inv_index[v].push_back(doc_id);
-        }
-        db_file << line << '\n';
-        db_offsets.push_back(db_file.tellp());
-
-        ++doc_id;
-    }
-    db_offsets.pop_back();
-
-    byte::write_int(count_file, doc_id);
-    byte::write_vector(db_offsets_file, db_offsets);
-
+void write_inv_index(
+    const std::filesystem::path& output_dir,
+    const std::map<std::string, std::vector<int32_t>>& inv_index) {
     std::ofstream tokens_offsets_file(output_dir / "term-offsets"),
         tokens_file(output_dir / "terms");
     std::ofstream inv_index_offsets_file(output_dir / "inv-index-offsets"),
@@ -144,6 +123,75 @@ void create_index(const std::filesystem::path& output_dir,
 
     byte::write_vector(tokens_offsets_file, tokens_offsets);
     byte::write_vector(inv_index_offsets_file, index_offsets);
+}
+
+void write_coord_index(
+    const std::filesystem::path& output_dir,
+    const std::map<std::string, std::vector<std::vector<int32_t>>>&
+        coord_index) {
+    std::ofstream coord_ids_offsets_file(output_dir / "coord-ids-offsets"),
+        coord_ids_file(output_dir / "coord-ids"),
+        coord_index_offsets_file(output_dir / "coord-index-offsets"),
+        coord_index_file(output_dir / "coord-index");
+
+    std::vector<int32_t> coord_ids_offsets, coord_index_offsets;
+    for (auto& [term, coords] : coord_index) {
+        std::vector<int32_t> coord_ids;
+
+        for (auto& coord : coords) {
+            coord_ids.push_back(coord_index_offsets.size());
+            coord_index_offsets.push_back(
+                byte::write_vector(coord_index_file, coord));
+        }
+
+        coord_ids_offsets.push_back(
+            byte::write_vector(coord_ids_file, coord_ids));
+    }
+
+    std::exclusive_scan(coord_index_offsets.begin(), coord_index_offsets.end(),
+                        coord_index_offsets.begin(), 0);
+    std::exclusive_scan(coord_ids_offsets.begin(), coord_ids_offsets.end(),
+                        coord_ids_offsets.begin(), 0);
+
+    byte::write_vector(coord_index_offsets_file, coord_index_offsets);
+    byte::write_vector(coord_ids_offsets_file, coord_ids_offsets);
+}
+
+void create_index(const std::filesystem::path& output_dir,
+                  std::istream& src_index) {
+    std::filesystem::create_directories(output_dir);
+    std::ofstream db_file(output_dir / "db"),
+        db_offsets_file(output_dir / "db-offsets"),
+        count_file(output_dir / "count");
+
+    std::string line;
+    int32_t doc_id = 0;
+
+    std::map<std::string, std::vector<int32_t>> inv_index;
+    std::map<std::string, std::vector<std::vector<int32_t>>> coord_index;
+
+    std::vector<int32_t> db_offsets(1, 0);
+    while (std::getline(src_index, line)) {
+        auto e = parse_entry(line);
+        auto tokens = tokenize(e.description);
+
+        for (auto& [v, pos] : tokens) {
+            inv_index[v].push_back(doc_id);
+            coord_index[v].push_back(pos);
+        }
+
+        db_file << line << '\n';
+        db_offsets.push_back(db_file.tellp());
+
+        ++doc_id;
+    }
+    db_offsets.pop_back();
+
+    byte::write_int(count_file, doc_id);
+    byte::write_vector(db_offsets_file, db_offsets);
+
+    write_inv_index(output_dir, inv_index);
+    write_coord_index(output_dir, coord_index);
 }
 
 int main(int argc, char* argv[]) {

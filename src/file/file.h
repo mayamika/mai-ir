@@ -72,6 +72,58 @@ public:
     }
 };
 
+class CoordIdsOffsetsFile {
+    std::filesystem::path dir_;
+
+public:
+    CoordIdsOffsetsFile(const std::filesystem::path& dir) : dir_(dir){};
+
+    std::vector<int32_t> offsets() const {
+        std::ifstream offsets_file(dir_ / "coord-ids-offsets");
+        return byte::read_vector<int32_t>(offsets_file);
+    }
+};
+
+class CoordIdsFile {
+    std::filesystem::path dir_;
+
+public:
+    CoordIdsFile(const std::filesystem::path& dir) : dir_(dir){};
+
+    std::vector<int32_t> ids(int32_t offset) const {
+        std::ifstream file(dir_ / "coord-ids");
+        file.seekg(offset);
+
+        return byte::read_vector<int32_t>(file);
+    }
+};
+
+class CoordIndexOffsetsFile {
+    std::filesystem::path dir_;
+
+public:
+    CoordIndexOffsetsFile(const std::filesystem::path& dir) : dir_(dir){};
+
+    std::vector<int32_t> offsets() const {
+        std::ifstream offsets_file(dir_ / "coord-index-offsets");
+        return byte::read_vector<int32_t>(offsets_file);
+    }
+};
+
+class CoordIndexFile {
+    std::filesystem::path dir_;
+
+public:
+    CoordIndexFile(const std::filesystem::path& dir) : dir_(dir){};
+
+    std::vector<int32_t> coordinates(int32_t offset) const {
+        std::ifstream index_file(dir_ / "coord-index");
+        index_file.seekg(offset);
+
+        return byte::read_vector<int32_t>(index_file);
+    }
+};
+
 class DbOffsetsFile {
     std::filesystem::path dir_;
 

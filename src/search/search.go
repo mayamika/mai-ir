@@ -42,7 +42,19 @@ func Search(indexPath, query string) (*QueryResult, error) {
 		return nil, errors.New("unknown error")
 	}
 
+	truncateQueryResult(qr)
 	return qr, nil
+}
+
+// TODO: use pagination
+func truncateQueryResult(qr *QueryResult) {
+	n := qr.Count
+	if n > 20 {
+		n = 20
+	}
+
+	qr.Count = n
+	qr.Items = qr.Items[:n]
 }
 
 func itemFromC(i *C.Item) *Item {

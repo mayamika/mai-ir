@@ -3,8 +3,6 @@ package search
 import (
 	"context"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/mayamika/mai-ir/internal/domain"
 	csearch "github.com/mayamika/mai-ir/src/search"
 )
@@ -28,13 +26,14 @@ func (s *Service) Search(ctx context.Context, r *domain.SearchRequest) (*domain.
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Remove debug print.
-	n := qr.Count
-	if qr.Count > 20 {
-		n = 20
-	}
-	qr.Items = qr.Items[:n]
-	spew.Dump(qr)
 
-	return &domain.SearchResponse{}, nil
+	var items []*domain.SearchItem
+	for _, i := range qr.Items {
+		items = append(items, (*domain.SearchItem)(i))
+	}
+
+	return &domain.SearchResponse{
+		Count: qr.Count,
+		Items: items,
+	}, nil
 }
